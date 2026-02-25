@@ -2,46 +2,22 @@ name: Auto-Update Library Registry
 
 on:
   pull_request:
-    branches: 
+    branches:
       - main
-    types: 
+    types:
       - opened
       - reopened
       - synchronize
     paths:
       - '**/*.lua'
+
 jobs:
-  check-changes:
+  process-pr:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout PR Branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          fetch-depth: 0
-
-      - name: Check for Lua Changes
-        run: |
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep '\.lua$' || true)
-          
-          if [ -z "$CHANGED_FILES" ]; then
-            echo "No relevant Lua files found. Closing PR."
-            curl -X PATCH \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }} \
-              -d '{"state":"closed"}'
-          else
-            echo "Lua files found. Proceeding with the registry update."
-          fi
-
-  update-registry:
-    runs-on: ubuntu-latest
-    needs: check-changes
     permissions:
       contents: write
-
+      pull-requests: write
+    
     steps:
       - name: Checkout PR Branch
         uses: actions/checkout@v4
@@ -49,47 +25,70 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           fetch-depth: 0
+
+      - name: Validate File Types
+        id: validate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch base branch to compare
+          git fetch origin ${{ github.base_ref }}
+          
+          # Get list of all changed files
+          ALL_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD)
+          
+          # Filter for Lua files only
+          LUA_FILES=$(echo "$ALL_FILES" | grep '\.lua$' || true)
+          
+          # Count files
+          TOTAL_COUNT=$(echo "$ALL_FILES" | grep -c -v '^$' || echo 0)
+          LUA_COUNT=$(echo "$LUA_FILES" | grep -c -v '^$' || echo 0)
+
+          echo "Total files changed: $TOTAL_COUNT"
+          echo "Lua files changed: $LUA_COUNT"
+
+          # Logic: If any non-lua files exist, or no lua files exist at all
+          if [ "$LUA_COUNT" -eq 0 ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body "❌ Pull Request rejected: No Lua files detected."
+            gh pr close ${{ github.event.pull_request.number }}
+            exit 1
+          fi
+
+          if [ "$TOTAL_COUNT" -ne "$LUA_COUNT" ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body "❌ Pull Request rejected: This registry only accepts Lua files. Please remove non-Lua files (e.g., .txt, .js, .exe) and try again."
+            gh pr close ${{ github.event.pull_request.number }}
+            exit 1
+          fi
+          
+          echo "Validation passed. Proceeding..."
 
       - name: Install Luacheck & jq
         run: |
-            sudo apt-get update
-            sudo apt-get install -y lua5.4 luarocks jq
-            sudo luarocks install luacheck
-      - name: Process New Libraries and Update JSON
+          sudo apt-get update
+          sudo apt-get install -y lua5.4 luarocks jq
+          sudo luarocks install luacheck
+
+      - name: Process Libraries and Update JSON
         run: |
-          # Ensure registry.json exists
           if [ ! -f "registry.json" ]; then
             echo "[]" > registry.json
           fi
 
-          # Fetch the base branch so we can compare
-          git fetch origin ${{ github.base_ref }}
+          LUA_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep '\.lua$' || true)
 
-          # Get list of new/modified Lua files
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep '\.lua$' || true)
-
-          if [ -z "$CHANGED_FILES" ]; then
-            echo "No relevant Lua files found."
-            exit 0
-          fi
-
-          for FILE in $CHANGED_FILES; do
+          for FILE in $LUA_FILES; do
             if [ ! -f "$FILE" ]; then continue; fi
             
-            # echo "Linting $FILE..."
-            # luacheck "$FILE" --no-color
-
             # Data Extraction
             FILE_MD5=$(md5sum "$FILE" | awk '{print $1}')
             FILE_NAME=$(basename "$FILE")
             
-            # Extract metadata from comments (e.g., -- @version 1.2)
+            # Extract metadata from comments
             FILE_VER=$(grep -oP '^--\s*@version\s+\K.*' "$FILE" || echo "alpha-0.1")
             FILE_LOC=$(grep -oP '^--\s*@location\s+\K.*' "$FILE" || echo "/libs/")
 
-            echo "Updating registry for $FILE_NAME (MD5: $FILE_MD5)"
+            echo "Updating registry for $FILE_NAME"
 
-            # Update the JSON array: remove old entry by name, add new entry
             jq --arg name "$FILE_NAME" \
                --arg md5 "$FILE_MD5" \
                --arg loc "$FILE_LOC" \
@@ -98,7 +97,6 @@ jobs:
                registry.json > tmp.json && mv tmp.json registry.json
           done
 
-
       - name: Commit Updated Registry
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
@@ -106,20 +104,10 @@ jobs:
           file_pattern: "registry.json"
           commit_user_name: github-actions[bot]
           commit_user_email: github-actions[bot]@users.noreply.github.com
-  approve-and-merge:
-    runs-on: ubuntu-latest
-    needs: update-registry
-    steps:
+
       - name: Approve and Merge PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          curl -X PUT \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
-            -d '{"event":"APPROVE"}'
-          
-          curl -X PUT \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/merge \
-            -d '{"merge_method":"merge"}'
+          gh pr review ${{ github.event.pull_request.number }} --approve
+          gh pr merge ${{ github.event.pull_request.number }} --merge
