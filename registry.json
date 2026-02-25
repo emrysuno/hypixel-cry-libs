@@ -4,5 +4,11 @@
     "md5": "d0818d38a1e7ef7317dad653bf0e57f1",
     "location": "/libs/",
     "ver": "1.0.0"
+  },
+  {
+    "name": "rotations_v3.lua",
+    "md5": "693b7e92cf40b6340ff1dbddce959826",
+    "location": "/libs/",
+    "ver": "alpha-0.1"
   }
 ]
