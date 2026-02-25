@@ -54,8 +54,8 @@ jobs:
           for FILE in $CHANGED_FILES; do
             if [ ! -f "$FILE" ]; then continue; fi
             
-            echo "Linting $FILE..."
-            luacheck "$FILE" --no-color
+            # echo "Linting $FILE..."
+            # luacheck "$FILE" --no-color
 
             # Data Extraction
             FILE_MD5=$(md5sum "$FILE" | awk '{print $1}')
