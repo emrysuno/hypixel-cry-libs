@@ -1,9 +1,10 @@
 name: Auto-Update Library Registry
-
 on:
+  push:
+    branches: ['main']
   pull_request:
-    branches:
-      - main
+    branches: ['main']
+    types: [opened, reopened, synchronize]
     paths:
       - '**/*.lua'
 
