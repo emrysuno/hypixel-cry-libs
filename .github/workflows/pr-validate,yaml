@@ -1,10 +1,16 @@
 name: Auto-Update Library Registry
+
 on:
   push:
-    branches: ['main']
+    branches: 
+      - main
   pull_request:
-    branches: ['main']
-    types: [opened, reopened, synchronize]
+    branches: 
+      - main
+    types: 
+      - opened
+      - reopened
+      - synchronize
     paths:
       - '**/*.lua'
 
@@ -12,16 +18,14 @@ jobs:
   update-registry:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Required to push the updated JSON back to the branch
+      contents: write
 
     steps:
       - name: Checkout PR Branch
         uses: actions/checkout@v4
         with:
-          # pull_request_target checks out base by default; we need the PR head
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
-          # Need full history to perform a diff against the base branch
           fetch-depth: 0
 
       - name: Install Luacheck & jq
@@ -72,11 +76,11 @@ jobs:
                registry.json > tmp.json && mv tmp.json registry.json
           done
 
+
       - name: Commit Updated Registry
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: auto-update registry for ${{ github.event.pull_request.title }}"
           file_pattern: "registry.json"
-          # Ensures the commit is attributed to the action bot
           commit_user_name: github-actions[bot]
           commit_user_email: github-actions[bot]@users.noreply.github.com
