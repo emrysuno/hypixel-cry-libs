@@ -1,11 +1,7 @@
 name: Auto-Update Library Registry
 
-permissions:
-  contents: write
-  pull-requests: write
-
 on:
-  pull_request:
+  pull_request_target: # This is the magic fix for forks
     branches:
       - main
     types:
@@ -24,7 +20,9 @@ jobs:
       - name: Checkout PR Branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          # We check out the HEAD of the PR (the friend's code)
+          ref: ${{ github.event.pull_request.head.sha }}
+          # We specify the friend's fork repository
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -35,32 +33,22 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
+          # Fetch your main branch so diff has something to compare against
           git fetch origin ${{ github.base_ref }}
           
           ALL_FILES=$(git diff --name-only --diff-filter=d origin/${{ github.base_ref }} HEAD)
           LUA_FILES=$(echo "$ALL_FILES" | grep '\.lua$' || true)
-          TOTAL_COUNT=$(echo "$ALL_FILES" | grep -v '^$' | wc -l)
-          LUA_COUNT=$(echo "$LUA_FILES" | grep -v '^$' | wc -l)
-
-          echo "Total files: $TOTAL_COUNT | Lua files: $LUA_COUNT"
-
-          if [ "$TOTAL_COUNT" -eq 0 ]; then
-            echo "No files detected."
-            exit 0
-          fi
+          TOTAL_COUNT=$(echo "$ALL_FILES" | grep -v '^$' | wc -l || echo 0)
+          LUA_COUNT=$(echo "$LUA_FILES" | grep -v '^$' | wc -l || echo 0)
 
           if [ "$TOTAL_COUNT" -ne "$LUA_COUNT" ]; then
-            echo "Non-Lua files detected. Attempting to close PR #${{ github.event.pull_request.number }}..."
-            
             gh pr comment ${{ github.event.pull_request.number }} \
                --repo "$REPO" \
-               --body "❌ PR Rejected: You included $TOTAL_COUNT files, but only $LUA_COUNT were .lua files. Please only submit Lua files."
+               --body "❌ PR Rejected: Only .lua files are allowed. Found non-lua files in your submission."
             
             gh pr close ${{ github.event.pull_request.number }} --repo "$REPO"
             exit 1
           fi
-          
-          echo "Validation passed. Only Lua files detected."
 
       - name: Install Luacheck & jq
         run: |
@@ -70,26 +58,18 @@ jobs:
 
       - name: Process Libraries and Update JSON
         run: |
-          if [ ! -f "registry.json" ]; then
-            echo "[]" > registry.json
-          fi
+          if [ ! -f "registry.json" ]; then echo "[]" > registry.json; fi
 
           LUA_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep '\.lua$' || true)
 
           for FILE in $LUA_FILES; do
             if [ ! -f "$FILE" ]; then continue; fi
-            
             FILE_MD5=$(md5sum "$FILE" | awk '{print $1}')
             FILE_NAME=$(basename "$FILE")
             FILE_VER=$(grep -oP '^--\s*@version\s+\K.*' "$FILE" || echo "alpha-0.1")
             FILE_LOC=$(grep -oP '^--\s*@location\s+\K.*' "$FILE" || echo "/libs/")
 
-            echo "Updating registry for $FILE_NAME"
-
-            jq --arg name "$FILE_NAME" \
-               --arg md5 "$FILE_MD5" \
-               --arg loc "$FILE_LOC" \
-               --arg ver "$FILE_VER" \
+            jq --arg name "$FILE_NAME" --arg md5 "$FILE_MD5" --arg loc "$FILE_LOC" --arg ver "$FILE_VER" \
                'map(select(.name != $name)) + [{name: $name, md5: $md5, location: $loc, ver: $ver}]' \
                registry.json > tmp.json && mv tmp.json registry.json
           done
@@ -97,14 +77,15 @@ jobs:
       - name: Commit Updated Registry
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: auto-update registry for ${{ github.event.pull_request.title }}"
+          commit_message: "chore: auto-update registry"
           file_pattern: "registry.json"
-          commit_user_name: github-actions[bot]
-          commit_user_email: github-actions[bot]@users.noreply.github.com
+          # Since we are on pull_request_target, we must push to the contributor's fork
+          branch: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       - name: Approve and Merge PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr review ${{ github.event.pull_request.number }} --approve
-          gh pr merge ${{ github.event.pull_request.number }} --merge --delete-branch
+          gh pr review ${{ github.event.pull_request.number }} --approve --repo ${{ github.repository }}
+          gh pr merge ${{ github.event.pull_request.number }} --merge --delete-branch --repo ${{ github.repository }}
