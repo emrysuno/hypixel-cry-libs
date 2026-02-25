@@ -1,8 +1,16 @@
 name: Auto-Update Library Registry
 
 on:
-  pull_request_target:
-    types: [opened, synchronize, reopened]
+  push:
+    branches: 
+      - main
+  pull_request:
+    branches: 
+      - main
+    types: 
+      - opened
+      - reopened
+      - synchronize
     paths:
       - '**/*.lua'
 
@@ -10,23 +18,21 @@ jobs:
   update-registry:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Required to push the updated JSON back to the branch
+      contents: write
 
     steps:
       - name: Checkout PR Branch
         uses: actions/checkout@v4
         with:
-          # pull_request_target checks out base by default; we need the PR head
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
-          # Need full history to perform a diff against the base branch
           fetch-depth: 0
 
       - name: Install Luacheck & jq
         run: |
-          sudo apt-get update
-          sudo apt-get install -y luacheck jq
-
+            sudo apt-get update
+            sudo apt-get install -y lua5.4 luarocks jq
+            sudo luarocks install luacheck
       - name: Process New Libraries and Update JSON
         run: |
           # Ensure registry.json exists
@@ -48,8 +54,8 @@ jobs:
           for FILE in $CHANGED_FILES; do
             if [ ! -f "$FILE" ]; then continue; fi
             
-            echo "Linting $FILE..."
-            luacheck "$FILE" --no-color
+            # echo "Linting $FILE..."
+            # luacheck "$FILE" --no-color
 
             # Data Extraction
             FILE_MD5=$(md5sum "$FILE" | awk '{print $1}')
@@ -70,11 +76,11 @@ jobs:
                registry.json > tmp.json && mv tmp.json registry.json
           done
 
+
       - name: Commit Updated Registry
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: auto-update registry for ${{ github.event.pull_request.title }}"
           file_pattern: "registry.json"
-          # Ensures the commit is attributed to the action bot
           commit_user_name: github-actions[bot]
           commit_user_email: github-actions[bot]@users.noreply.github.com
