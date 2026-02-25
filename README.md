@@ -10,7 +10,7 @@ Thank you for your interest in contributing! To keep the registry organized and 
 ### 1. Setup
 Clone the repository to your local machine:
 ```bash
-git clone [https://github.com/YourUsername/YourRepository.git](https://github.com/YourUsername/YourRepository.git)
+git clone https://github.com/lmoboy/hypixel-cry-libs.git
 
 ```
 
