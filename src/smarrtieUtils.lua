@@ -1,3 +1,6 @@
+-- @version 1.0.0
+-- @location /libs/
+
 local time = {}
 
 local lastTick = os.clock()
