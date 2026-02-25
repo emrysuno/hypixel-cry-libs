@@ -1,25 +1,26 @@
 name: Auto-Update Library Registry
 
 on:
-  pull_request:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
     paths:
-      - '**/*.lua' # Only trigger if a Lua file is added or changed
+      - '**/*.lua'
 
 jobs:
   update-registry:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Required to allow the bot to commit back to the PR
+      contents: write # Required to push the updated JSON back to the branch
 
     steps:
-      - name: Checkout Code
+      - name: Checkout PR Branch
         uses: actions/checkout@v4
         with:
-          # Check out the PR branch specifically so we can push commits back to it
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          # pull_request_target checks out base by default; we need the PR head
           ref: ${{ github.event.pull_request.head.ref }}
-          # Fetch all history so we can diff against the base branch
-          fetch-depth: 0 
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          # Need full history to perform a diff against the base branch
+          fetch-depth: 0
 
       - name: Install Luacheck & jq
         run: |
@@ -28,44 +29,39 @@ jobs:
 
       - name: Process New Libraries and Update JSON
         run: |
-          # Ensure an empty JSON array exists if the file is missing
+          # Ensure registry.json exists
           if [ ! -f "registry.json" ]; then
             echo "[]" > registry.json
           fi
 
-          # Get a list of Lua files added or modified in this PR
+          # Fetch the base branch so we can compare
+          git fetch origin ${{ github.base_ref }}
+
+          # Get list of new/modified Lua files
           CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep '\.lua$' || true)
 
           if [ -z "$CHANGED_FILES" ]; then
-            echo "No Lua files modified. Skipping."
+            echo "No relevant Lua files found."
             exit 0
           fi
 
           for FILE in $CHANGED_FILES; do
-            # Skip if file was deleted
             if [ ! -f "$FILE" ]; then continue; fi
             
-            echo "Processing $FILE..."
-
-            # 1. Lint the file (will fail the Action if warnings/errors exist)
+            echo "Linting $FILE..."
             luacheck "$FILE" --no-color
 
-            # 2. Calculate MD5
+            # Data Extraction
             FILE_MD5=$(md5sum "$FILE" | awk '{print $1}')
-            
-            # 3. Extract Metadata
             FILE_NAME=$(basename "$FILE")
             
-            # Parse the @version comment, default to "1.0" if missing
-            FILE_VER=$(grep -oP '^--\s*@version\s+\K.*' "$FILE" || echo "1.0")
-            
-            # Parse the @location comment, default to the file's directory if missing
-            FILE_LOC=$(grep -oP '^--\s*@location\s+\K.*' "$FILE" || dirname "/$FILE/")
+            # Extract metadata from comments (e.g., -- @version 1.2)
+            FILE_VER=$(grep -oP '^--\s*@version\s+\K.*' "$FILE" || echo "alpha-0.1")
+            FILE_LOC=$(grep -oP '^--\s*@location\s+\K.*' "$FILE" || echo "/libs/")
 
-            echo "Name: $FILE_NAME | MD5: $FILE_MD5 | Ver: $FILE_VER | Loc: $FILE_LOC"
+            echo "Updating registry for $FILE_NAME (MD5: $FILE_MD5)"
 
-            # 4. Update registry.json using jq
-            # This looks for an existing entry with the same name, removes it, and appends the new one
+            # Update the JSON array: remove old entry by name, add new entry
             jq --arg name "$FILE_NAME" \
                --arg md5 "$FILE_MD5" \
                --arg loc "$FILE_LOC" \
@@ -74,8 +70,11 @@ jobs:
                registry.json > tmp.json && mv tmp.json registry.json
           done
 
-      - name: Commit Updated Registry back to PR
+      - name: Commit Updated Registry
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore: auto-update registry.json with new library hashes"
+          commit_message: "chore: auto-update registry for ${{ github.event.pull_request.title }}"
           file_pattern: "registry.json"
+          # Ensures the commit is attributed to the action bot
+          commit_user_name: github-actions[bot]
+          commit_user_email: github-actions[bot]@users.noreply.github.com
