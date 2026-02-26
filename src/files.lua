@@ -1,13 +1,13 @@
--- @version 1.0
+-- @version 1.0.1
 -- @location /libs/
 
 -- This allows you to read and write files to the file system. Note that malicious actions can be taken with this library, use with caution!!
-
 local File = luajava.bindClass("java.io.File")
 local Files = luajava.bindClass("java.nio.file.Files")
 local Array = luajava.bindClass("java.lang.reflect.Array")
 local StandardCharsets = luajava.bindClass("java.nio.charset.StandardCharsets")
 local Paths = luajava.bindClass("java.nio.file.Paths")
+local System = luajava.bindClass("java.lang.System")
 local files = {}
 
 function files.getFiles(directory)
@@ -28,6 +28,31 @@ function files.getFiles(directory)
 	return filesList
 end
 
+function files.getFileData(filePath)
+    local file = luajava.newInstance("java.io.File", filePath)
+    if not file:exists() then return nil end
+
+    local data = {}
+
+    data.name = file:getName()
+    data.absolutePath = file:getAbsolutePath()
+    data.parent = file:getParent()
+    data.exists = file:exists()
+    data.isFile = file:isFile()
+    data.isDirectory = file:isDirectory()
+    data.isHidden = file:isHidden()
+    data.lastModified = file:lastModified() -- returns long timestamp (divide by 1000 to get epoch time)
+    data.size = file:length() -- in bytes
+
+    -- Permissions
+    data.permissions = {
+        canRead = file:canRead(),
+        canWrite = file:canWrite(),
+        canExecute = file:canExecute()
+    }
+    return data
+end
+
 function files.getDirectories(directory)
     local dirList = {}
     local dir = luajava.newInstance("java.io.File", directory)
@@ -44,6 +69,10 @@ function files.getDirectories(directory)
         end
     end
     return dirList
+end
+
+function files.getInstanceDir()
+    return System:getProperty("user.dir")
 end
 
 function files.readFile(file)
