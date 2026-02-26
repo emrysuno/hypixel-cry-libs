@@ -1,76 +1,76 @@
 {
-  "libs":[
-  {
-    "name": "rotations_v2.lua",
-    "md5": "1f543dca497f5b5438a40b16ef39806b",
-    "location": "/libs/",
-    "ver": "1.0"
-  },
-  {
-    "name": "rotations_v3.lua",
-    "md5": "81237d2eb4817ceeea51c2a10752543c",
-    "location": "/libs/ ",
-    "ver": "1.0.0"
-  },
-  {
-    "name": "pathfinder_core.lua",
-    "md5": "fa1656f8b5fc862ca8816144d149b8ff",
-    "location": "/libs/",
-    "ver": "beta-0.1"
-  },
-  {
-    "name": "pathwalker.lua",
-    "md5": "5319eb51491935afc6406bbbab91024a",
-    "location": "/libs/",
-    "ver": "beta-0.1"
-  },
-  {
-    "name": "aotvUtils.lua",
-    "md5": "9f76d44325ddcbafe97f0e0a2c945c9f",
-    "location": "/libs/",
-    "ver": "1.0"
-  },
-  {
-    "name": "downloadFile.lua",
-    "md5": "4296ca760b155ccce1c75d1929ceca92",
-    "location": "/libs/",
-    "ver": "1.0"
-  },
-  {
-    "name": "index.lua",
-    "md5": "353de8cda47cbf8fd54af3ccb56fe16c",
-    "location": "/CryVigilance/",
-    "ver": "1.0"
-  },
-  {
-    "name": "inventory_utils.lua",
-    "md5": "111f6e43b7037628b58a46d0a6f3c9a5",
-    "location": "/libs/",
-    "ver": "alpha-0.1"
-  },
-  {
-    "name": "printColor.lua",
-    "md5": "758f82907eab0105988060e5cf0dedb5",
-    "location": "/libs/",
-    "ver": "1.1.0"
-  },
-  {
-    "name": "files.lua",
-    "md5": "d4d2f62cfb9ce0ab9eeeded3c05aeef9",
-    "location": "/libs/",
-    "ver": "1.0.1"
-  },
-  {
-    "name": "md5.lua",
-    "md5": "5e0926e14fbc89688e9728d0be0a7ae0",
-    "location": "/libs/",
-    "ver": "1.1.0"
-  },
-  {
-    "name": "smarrtieUtils.lua",
-    "md5": "1322080947ec01f35a620f2c3ef50c79",
-    "location": "/libs/",
-    "ver": "1.0.1"
-  }
-]
+  "libs": [
+    {
+      "name": "rotations_v2.lua",
+      "md5": "1f543dca497f5b5438a40b16ef39806b",
+      "location": "/libs/",
+      "ver": "1.0"
+    },
+    {
+      "name": "pathfinder_core.lua",
+      "md5": "fa1656f8b5fc862ca8816144d149b8ff",
+      "location": "/libs/",
+      "ver": "beta-0.1"
+    },
+    {
+      "name": "pathwalker.lua",
+      "md5": "5319eb51491935afc6406bbbab91024a",
+      "location": "/libs/",
+      "ver": "beta-0.1"
+    },
+    {
+      "name": "aotvUtils.lua",
+      "md5": "9f76d44325ddcbafe97f0e0a2c945c9f",
+      "location": "/libs/",
+      "ver": "1.0"
+    },
+    {
+      "name": "downloadFile.lua",
+      "md5": "4296ca760b155ccce1c75d1929ceca92",
+      "location": "/libs/",
+      "ver": "1.0"
+    },
+    {
+      "name": "index.lua",
+      "md5": "353de8cda47cbf8fd54af3ccb56fe16c",
+      "location": "/CryVigilance/",
+      "ver": "1.0"
+    },
+    {
+      "name": "inventory_utils.lua",
+      "md5": "111f6e43b7037628b58a46d0a6f3c9a5",
+      "location": "/libs/",
+      "ver": "alpha-0.1"
+    },
+    {
+      "name": "printColor.lua",
+      "md5": "758f82907eab0105988060e5cf0dedb5",
+      "location": "/libs/",
+      "ver": "1.1.0"
+    },
+    {
+      "name": "files.lua",
+      "md5": "d4d2f62cfb9ce0ab9eeeded3c05aeef9",
+      "location": "/libs/",
+      "ver": "1.0.1"
+    },
+    {
+      "name": "md5.lua",
+      "md5": "5e0926e14fbc89688e9728d0be0a7ae0",
+      "location": "/libs/",
+      "ver": "1.1.0"
+    },
+    {
+      "name": "smarrtieUtils.lua",
+      "md5": "1322080947ec01f35a620f2c3ef50c79",
+      "location": "/libs/",
+      "ver": "1.0.1"
+    },
+    {
+      "name": "rotations_v3.lua",
+      "md5": "de306e0468ab4151ed8eb1d2f0a74a1b",
+      "location": "/libs/ ",
+      "ver": "1.0.0-final"
+    }
+  ]
 }
