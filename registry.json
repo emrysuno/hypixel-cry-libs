@@ -42,12 +42,6 @@
     "ver": "1.0"
   },
   {
-    "name": "files.lua",
-    "md5": "4daae568aaa444a1529b75562563da50",
-    "location": "/libs/",
-    "ver": "1.0"
-  },
-  {
     "name": "index.lua",
     "md5": "353de8cda47cbf8fd54af3ccb56fe16c",
     "location": "/CryVigilance/",
@@ -64,5 +58,11 @@
     "md5": "758f82907eab0105988060e5cf0dedb5",
     "location": "/libs/",
     "ver": "1.1.0"
+  },
+  {
+    "name": "files.lua",
+    "md5": "863711770b156af6fb513caec7702d6b",
+    "location": "/libs/",
+    "ver": "1.0"
   }
 ]
