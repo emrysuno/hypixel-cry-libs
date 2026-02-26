@@ -1,7 +1,7 @@
 name: Auto-Update Library Registry
 
 on:
-  pull_request_target: # This is the magic fix for forks
+  pull_request_target:
     branches:
       - main
     types:
@@ -17,82 +17,54 @@ jobs:
       pull-requests: write
     
     steps:
-      - name: Checkout PR Branch
+      - name: Checkout Your Repository (Main)
         uses: actions/checkout@v4
         with:
-          # We check out the HEAD of the PR (the friend's code)
-          ref: ${{ github.event.pull_request.head.sha }}
-          # We specify the friend's fork repository
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: main
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Validate File Types
+      - name: Validate and Prepare Registry
         id: validate
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
-          git fetch origin ${{ github.base_ref }}
+          git fetch origin pull/${{ github.event.pull_request.number }}/head:temp_pr
           
-          ALL_FILES=$(git diff --name-only --diff-filter=d origin/${{ github.base_ref }} HEAD | grep -v 'registry.json' || true)
+          ALL_FILES=$(git diff --name-only main temp_pr | grep -v 'registry.json' || true)
           LUA_FILES=$(echo "$ALL_FILES" | grep '\.lua$' || true)
           TOTAL_COUNT=$(echo "$ALL_FILES" | grep -v '^$' | wc -l || echo 0)
           LUA_COUNT=$(echo "$LUA_FILES" | grep -v '^$' | wc -l || echo 0)
 
-          echo "Total files (excluding registry): $TOTAL_COUNT | Lua files: $LUA_COUNT"
-
-          if [ "$TOTAL_COUNT" -eq 0 ]; then
-            echo "No new Lua files to process. Exiting gracefully."
-            exit 0
-          fi
-
           if [ "$TOTAL_COUNT" -ne "$LUA_COUNT" ]; then
-            echo "Non-Lua files detected. Attempting to close PR..."
-            
-            gh pr comment ${{ github.event.pull_request.number }} \
-               --repo "$REPO" \
-               --body "❌ **PR Rejected**: Only `.lua` files are permitted. Please remove any other file types (e.g. .txt, .zip) and try again."
-            
+            gh pr comment ${{ github.event.pull_request.number }} --repo "$REPO" \
+               --body "❌ **PR Rejected**: Only `.lua` files are allowed. Please remove other files and try again."
             gh pr close ${{ github.event.pull_request.number }} --repo "$REPO"
             exit 1
           fi
-          
-          echo "Validation passed. Only Lua files (and registry.json) detected."
 
-      - name: Install Luacheck & jq
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y lua5.4 luarocks jq
-          sudo luarocks install luacheck
+          git checkout temp_pr
+          sudo apt-get update && sudo apt-get install -y jq lua5.4
 
-      - name: Process Libraries and Update JSON
-        run: |
           if [ ! -f "registry.json" ]; then echo "[]" > registry.json; fi
-
-          LUA_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep '\.lua$' || true)
+          
+          git checkout main -- registry.json || echo "[]" > registry.json
 
           for FILE in $LUA_FILES; do
             if [ ! -f "$FILE" ]; then continue; fi
-            FILE_MD5=$(md5sum "$FILE" | awk '{print $1}')
-            FILE_NAME=$(basename "$FILE")
-            FILE_VER=$(grep -oP '^--\s*@version\s+\K.*' "$FILE" || echo "alpha-0.1")
-            FILE_LOC=$(grep -oP '^--\s*@location\s+\K.*' "$FILE" || echo "/libs/")
-
-            jq --arg name "$FILE_NAME" --arg md5 "$FILE_MD5" --arg loc "$FILE_LOC" --arg ver "$FILE_VER" \
+            MD5=$(md5sum "$FILE" | awk '{print $1}')
+            NAME=$(basename "$FILE")
+            VER=$(grep -oP '^--\s*@version\s+\K.*' "$FILE" || echo "alpha-0.1")
+            LOC=$(grep -oP '^--\s*@location\s+\K.*' "$FILE" || echo "/libs/")
+            
+            jq --arg name "$NAME" --arg md5 "$MD5" --arg loc "$LOC" --arg ver "$VER" \
                'map(select(.name != $name)) + [{name: $name, md5: $md5, location: $loc, ver: $ver}]' \
-               registry.json > tmp.json && mv tmp.json registry.json
+               registry.json > registry.json.tmp && mv registry.json.tmp registry.json
           done
-
-      - name: Commit Updated Registry
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore: auto-update registry"
-          file_pattern: "registry.json"
-          commit_user_name: github-actions[bot]
-          commit_user_email: github-actions[bot]@users.noreply.github.com
-          # branch: ${{ github.event.pull_request.head.ref }}
-          # repository: ${{ github.event.pull_request.head.repo.full_name }}
+          
+          cp registry.json /tmp/registry.json
+          
+          git checkout main
 
       - name: Approve and Merge PR
         env:
@@ -100,3 +72,28 @@ jobs:
         run: |
           gh pr review ${{ github.event.pull_request.number }} --approve --repo ${{ github.repository }}
           gh pr merge ${{ github.event.pull_request.number }} --merge --delete-branch --repo ${{ github.repository }}
+          
+          git pull origin main
+
+      - name: Update Registry on Main
+        run: |
+          cp /tmp/registry.json registry.json
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add registry.json
+          if git diff --staged --quiet; then
+            echo "No changes to registry.json"
+          else
+            git commit -m "chore: update registry for PR #${{ github.event.pull_request.number }}"
+            git push origin main
+          fi
+
+      - name: Success Notification
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} \
+             --repo ${{ github.repository }} \
+             --body "✅ **Success!** Library registered and PR merged into main."
