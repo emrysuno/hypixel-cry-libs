@@ -65,7 +65,9 @@ jobs:
         run: |
           git checkout temp_pr
 
-          git checkout main -- registry.json 2>/dev/null || echo "[]" > registry.json
+          if [ ! -f registry.json ] || [ "$(cat registry.json)" = "" ]; then
+            echo '{"libs": []}' > registry.json
+          fi
 
           LUA_FILES="${{ steps.validate.outputs.lua_files }}"
 
@@ -86,17 +88,15 @@ jobs:
                  --arg md5  "$MD5"  \
                  --arg loc  "$LOC"  \
                  --arg ver  "$VER"  \
-                 'map(select(.name != $name)) + [{name: $name, md5: $md5, location: $loc, ver: $ver}]' \
-                 registry.json \
-              | jq '.' > registry.json.tmp && mv registry.json.tmp registry.json
+                 '.libs = (.libs | map(select(.name != $name)) + [{name: $name, md5: $md5, location: $loc, ver: $ver}])' \
+                 registry.json > registry.json.tmp && mv registry.json.tmp registry.json
             done
           fi
 
           cp registry.json /tmp/registry.json
 
-          echo "Final registry.json:"
+          echo "registry.json:"
           cat registry.json
-
       - name: Approve PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
