@@ -44,8 +44,8 @@ jobs:
           fi
 
           git checkout temp_pr
-          sudo apt-get update && sudo apt-get install -y jq lua5.4
-
+          sudo apt-get update
+          
           if [ ! -f "registry.json" ]; then echo "[]" > registry.json; fi
           
           git checkout main -- registry.json || echo "[]" > registry.json
