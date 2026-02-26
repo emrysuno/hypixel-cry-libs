@@ -1,4 +1,4 @@
--- @version 1.0.0
+-- @version 1.0.1
 -- @location /libs/
 
 local time = {}
@@ -23,6 +23,11 @@ end
 
 function time.tickCount()
     return tickCount
+end
+
+function time.timestampToDate(stamp)
+    stamp = math.floor(stamp/1000)
+    return os.date("%Y-%m-%d %H:%M:%S", stamp)
 end
 
 function time.getFPS()
