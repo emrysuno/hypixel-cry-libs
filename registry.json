@@ -62,15 +62,15 @@
     },
     {
       "name": "pathfinder_core.lua",
-      "md5": "86fa38f02c810d7b1adb8138d90e7d62",
+      "md5": "6c7ad7c6a9998dd8f29d8b73435b6d96",
       "location": "/libs/",
-      "ver": "beta-0.2"
+      "ver": "beta-0.3"
     },
     {
       "name": "pathwalker.lua",
-      "md5": "c103fc75042e2b2c63b88189960de943",
+      "md5": "f32a3e12e79dcef59002cb53c6c52b0c",
       "location": "/libs/",
-      "ver": "beta-0.2"
+      "ver": "beta-0.3"
     }
   ]
 }
