@@ -1,24 +1,12 @@
--- @version beta-0.2
+-- @version beta-0.3
 -- @location /libs/
 
 local Core = {}
 
-local function getSlabType(block)
-    if not block or not block.box then return "none" end
-    local height = block.box.getYSize()
-    local minY = block.box.minY % 1
+Core.maxNodes = 800000 -- haha memory leak go KABOOM<KABLOW<R.I.P MY GRANNY SHE GOT HIT BY A BAZOOKA<YEAH I THINK ABOUT HER EVERY TIME I HIT THE HOOKAH<KABLOW<KABOOM<KABLOW
 
-    
-    
-    if height > 0.9 then return "full" end
-    if minY >= 0.5 then return "top" end
-    return "bottom"
-end
-
-Core.maxNodes = 8000
-
-Core.jumpHeight = 1
-Core.smoothPath = true
+Core.jumpHeight = 6
+Core.smoothPath = false
 Core.fallDepth = 10
 Core.debugCapture = false
 Core._debugExpanded = {}
@@ -29,51 +17,6 @@ local _lock = false
 local function key(x, y, z)
     return x .. "," .. y .. "," .. z
 end
-
-local function heuristic(ax, ay, az, bx, by, bz)
-    local dx = math.abs(ax - bx)
-    local dy = math.abs(ay - by)
-    local dz = math.abs(az - bz)
-    local hi = math.max(dx, dz)
-    local lo = math.min(dx, dz)
-    return (hi - lo) + lo * 1.4142 + dy
-end
-
-local function getMaxYCollision(x,y,z)
-    local blockState = world.getBlock(x,y,z)
-    local maxY = 0
-    local collisions = world.getCollisionBoxes(x, y, z, blockState)
-    if collisions then
-        for i = 1, #collisions do
-            if maxY < collisions[i].maxY then
-                maxY = collisions[i].maxY
-            end
-        end
-    end
-    return maxY
-end
-
-
-
-
-local function isWalkable(bx, by, bz)
-    local gnd  = world.getBlock(bx, by - 1, bz)
-    local foot = world.getBlock(bx, by,     bz)
-    local head = world.getBlock(bx, by + 1, bz)
-    local hair = world.getBlock(bx, by + 2, bz) -- i was too lazy to fix the issue where it wouldn't know that a diagonal a/descend is not possible
-
-    if not gnd or not gnd.is_solid or gnd.is_liquid then return false end
-    if gnd.box and gnd.box.getYSize() > 1.0 then return false end
-    if getMaxYCollision(bx,by,bz) > 1 then return false end
-    if foot and foot.is_solid then
-        if getSlabType(foot) ~= "bottom" then return false end
-    end
-
-    if head and head.is_solid or (head and head.is_liquid) then return false end
-    if hair and hair.is_solid or (hair and hair.is_liquid) then return false end
-    return true
-end
-
 local function isSolid(bx, by, bz)
     local block = world.getBlock(bx, by, bz)
     if not block then return false end
@@ -88,9 +31,60 @@ local function isLadder(x,y,z)
     return false
 end
 
-local function isClearPath(ax, ay, az, bx, by, bz)
-    return true  -- covered by hasGroundLOS raycasts (doing some microsoft isBlockSolid -> true no matter what vibes)
+local function heuristic(ax, ay, az, bx, by, bz)
+    local dx = math.abs(ax - bx)
+    local dy = math.abs(ay - by)
+    local dz = math.abs(az - bz)
+    local hi = math.max(dx, dz)
+    local lo = math.min(dx, dz)
+    return ((hi - lo) + lo * 1.4142 + dy) * 0.8
 end
+
+function Core.getMaxYCollision(x,y,z)
+    local blockState = world.getBlock(x,y,z)
+    local maxY = 0
+    local collisions = world.getCollisionBoxes(x, y, z, blockState)
+    if collisions then
+        for i = 1, #collisions do
+            if maxY < collisions[i].maxY then
+                maxY = collisions[i].maxY
+            end
+        end
+    end
+    return maxY
+end
+
+
+local function isWalkable(bx, by, bz)
+    local gnd  = world.getBlock(bx, by - 1, bz)
+    local foot = world.getBlock(bx, by,     bz)
+    local head = world.getBlock(bx, by + 1, bz)
+    local hair = world.getBlock(bx, by + 2, bz)
+
+    if gnd and gnd.is_solid then
+        if Core.getMaxYCollision(bx, by - 1, bz) > 1.0 then
+            return false
+        end
+    end
+    
+  
+    if isLadder(bx,by,bz) then
+        return true
+    end
+    
+    local footCollision = Core.getMaxYCollision(bx, by, bz)
+    if footCollision > 0.6 then
+        return false
+    end
+
+    if Core.getMaxYCollision(bx,by-1,bz) + footCollision > 1 then return false end
+    if Core.getMaxYCollision(bx, by + 1, bz) > 0.5 then return false end
+    if Core.getMaxYCollision(bx, by + 2, bz) > 0.5 then return false end
+    if not gnd or not gnd.is_solid or gnd.is_liquid then return false end
+    return true
+end
+
+
 
 local debugResolveY={}
 
@@ -154,27 +148,34 @@ function Core.debugViewYResolve(ctx)
 end
 
 local function hasGroundLOS(ax, ay, az, bx, by, bz)
-    local function rayBlocked(offsetY)
-        local result = world.raycast({
-            startX = ax + 0.5, startY = ay + offsetY, startZ = az + 0.5,
-            endX   = bx + 0.5, endY   = by + offsetY, endZ   = bz + 0.5,
-        })
-        if result == nil or result.type == "miss" then return false end
-        if result.type == "block" then
-            local block = world.getBlock(result.blockPos.x, result.blockPos.y, result.blockPos.z)
-            if getSlabType(block) == "bottom" and result.blockPos.y == math.floor(ay) then
-                return false
-            end
-            if result.blockPos.x == bx and result.blockPos.z == bz and result.blockPos.y == by - 1 then
-                return false
-            end
-            return true
-        end
-        return false
-    end
+    local dx = bx - ax
+    local dz = bz - az
+    local distance = math.sqrt(dx * dx + dz * dz)
+    
+    if distance < 0.1 then return true end
+    local steps = math.ceil(distance / 0.3)
 
-    if rayBlocked(1.8) then return false end
-    if rayBlocked(0.1) then return false end
+    for i = 0, steps do
+        local t = i / steps
+        local curX = math.floor(ax + (dx * t) + 0.5)
+        local curZ = math.floor(az + (dz * t) + 0.5)
+
+        local ground = world.getBlock(curX, ay - 1, curZ)
+        local groundCol = Core.getMaxYCollision(curX, ay - 1, curZ)
+
+        if not ground or not ground.is_solid or groundCol < 0.1 then
+            return false
+        end
+
+        local footBlock = world.getBlock(curX, ay, curZ)
+        local headBlock = world.getBlock(curX, ay + 1, curZ)
+
+        if (footBlock and footBlock.is_solid and Core.getMaxYCollision(curX, ay, curZ) > 0.5) 
+            -- or (headBlock and headBlock.is_solid and Core.getMaxYCollision(curX, ay + 1, curZ) > 0.5)
+        then
+            return false
+        end
+    end
 
     return true
 end
@@ -236,8 +237,7 @@ local function smoothPath(rawPath)
                 i = i + 1
             end
         else
-            if not hasGroundLOS(a.x, a.y, a.z, b.x, b.y, b.z) 
-               or not isClearPath(a.x, a.y, a.z, b.x, b.y, b.z) then
+            if not hasGroundLOS(a.x, a.y, a.z, b.x, b.y, b.z) then
                 if i - 1 > anchor then
                     table.insert(smooth, rawPath[i - 1])
                     anchor = i - 1
@@ -271,92 +271,135 @@ local function reconstructPath(came, node)
     return raw
 end
 
+-- Attempts to stitch a forward partial path and a reverse partial path together.
+-- Finds the closest pair of endpoints between the two paths and splices them.
+-- Returns the merged path, or whichever single path was longer if no reasonable meet point exists.
+local function stitchPaths(fwdPath, revPath)
+    if not fwdPath or #fwdPath == 0 then
+        if revPath and #revPath > 0 then
+            -- reverse the reverse path so it runs start→goal direction
+            local out = {}
+            for i = #revPath, 1, -1 do out[#out + 1] = revPath[i] end
+            return out
+        end
+        return nil
+    end
+    if not revPath or #revPath == 0 then return fwdPath end
+
+    -- The reverse search ran from goal→start, so revPath[1] is near the goal.
+    -- Flip it so it runs from its best node toward the goal.
+    local revFlipped = {}
+    for i = #revPath, 1, -1 do revFlipped[#revFlipped + 1] = revPath[i] end
+
+    -- Find the closest pair of nodes between the tip of fwdPath and the tip of revFlipped.
+    -- "Tip" = the end of fwdPath and the start of revFlipped (they should be closest).
+    -- We do a small window search rather than O(n²) across full paths.
+    local WINDOW = 10
+    local fStart = math.max(1, #fwdPath - WINDOW)
+    local rEnd   = math.min(#revFlipped, WINDOW)
+
+    local bestDist = math.huge
+    local bestFi, bestRi = #fwdPath, 1
+
+    for fi = fStart, #fwdPath do
+        local fp = fwdPath[fi]
+        for ri = 1, rEnd do
+            local rp = revFlipped[ri]
+            local dx = fp.x - rp.x
+            local dy = fp.y - rp.y
+            local dz = fp.z - rp.z
+            local d  = dx*dx + dy*dy + dz*dz
+            if d < bestDist then
+                bestDist = d
+                bestFi   = fi
+                bestRi   = ri
+            end
+        end
+    end
+
+    -- Only stitch if the gap is reasonable (≤ ~8 blocks manhattan-ish).
+    -- If the gap is huge the paths didn't get close enough to be useful joined.
+    if bestDist > 64 then
+        -- Return whichever partial got closer to the other's origin.
+        if #fwdPath >= #revFlipped then return fwdPath else return revFlipped end
+    end
+
+    local merged = {}
+    for i = 1, bestFi do
+        merged[#merged + 1] = fwdPath[i]
+    end
+    for i = bestRi, #revFlipped do
+        merged[#merged + 1] = revFlipped[i]
+    end
+    return merged
+end
+
 -- with this function, it's synchronous so you must run it on another thread or your mc will freeze for god know how long
 -- also the commented out return raw or return partial are for unsmoothened node only path, should make it into a feature but naah
-local function astarSearch(start, goal)
-    local open          = Heap.new()
-    local gScore        = {}
-    local came          = {}
-    local closed        = {}
+local function astarSearch(start, goal, _isReverse)
+    local open = Heap.new()
+    local gScore = {}
+    local came = {}
+    local closed = {}
 
-    Core._debugExpanded = {}
-    Core._debugOpen     = {}
+    local gx, gy, gz = goal.x, goal.y, goal.z
+    local sk = key(start.x, start.y, start.z)
+    gScore[sk] = 0
 
-    local sk            = key(start.x, start.y, start.z)
-    gScore[sk]          = 0
+    local startH = heuristic(start.x, start.y, start.z, gx, gy, gz)
+    open:push({ x = start.x, y = start.y, z = start.z, f = startH, h = startH })
 
-    local startH        = heuristic(start.x, start.y, start.z, goal.x, goal.y, goal.z)
-    open:push({
-        x = start.x,
-        y = start.y,
-        z = start.z,
-        f = startH,
-        h = startH,
-    })
-
-    local bestNode   = { x = start.x, y = start.y, z = start.z }
-    local bestH      = startH
-
-    local DIRS       = {
-        { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, -- cardinal
-        { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 }, -- diagonal
-    }
-
+    local bestNode = { x = start.x, y = start.y, z = start.z, h = startH }
     local expansions = 0
+
+    local DIRS = {
+        { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 },
+        { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 },
+    }
 
     while open:size() > 0 do
         expansions = expansions + 1
         if expansions > Core.maxNodes then
             local partial = reconstructPath(came, bestNode)
-            if Core.smoothPath then
-                return smoothPath(partial), "node limit (" .. Core.maxNodes .. ") — partial path returned"
-            else
-                return partial, "node limit (" .. Core.maxNodes .. ") — partial path returned"
+            if not _isReverse then
+                -- Run a reverse search from goal toward start and try to stitch.
+                local revPartial, revErr = astarSearch(goal, start, true)
+                local merged = stitchPaths(partial, revPartial)
+                local final = (Core.smoothPath and merged) and smoothPath(merged) or merged
+                return final, "limit"
             end
+            return Core.smoothPath and smoothPath(partial) or partial, "limit"
         end
 
         local cur = open:pop()
-        local ck  = key(cur.x, cur.y, cur.z)
+        local ck = key(cur.x, cur.y, cur.z)
         if closed[ck] then goto continue end
         closed[ck] = true
 
-        if Core.debugCapture then
-            Core._debugExpanded[#Core._debugExpanded + 1] = { x = cur.x, y = cur.y, z = cur.z }
-        end
-
-        -- Update best-node tracker
-        if cur.h < bestH then
-            bestH    = cur.h
+        if cur.h < bestNode.h then
             bestNode = cur
         end
 
-        if math.abs(cur.x - goal.x) <= 1
-            and math.abs(cur.y - goal.y) <= 1
-            and math.abs(cur.z - goal.z) <= 1 then
+        if math.abs(cur.x - gx) <= 1 and math.abs(cur.y - gy) <= 1 and math.abs(cur.z - gz) <= 1 then
             local raw = reconstructPath(came, cur)
-            local last = raw[#raw]
-            if not (last.x == goal.x and last.y == goal.y and last.z == goal.z) then
-                raw[#raw + 1] = { x = goal.x, y = goal.y, z = goal.z }
+            if not (raw[#raw].x == gx and raw[#raw].y == gy and raw[#raw].z == gz) then
+                raw[#raw + 1] = { x = gx, y = gy, z = gz }
             end
-            if Core.smoothPath then
-                return smoothPath(raw), nil
-            else
-                return raw, nil
-            end
+            return Core.smoothPath and smoothPath(raw) or raw, nil
         end
 
-        local verticalDirs = { { 0, 0, 1 }, { 0, 0, -1 } } -- dx, dz, dy
+        local verticalDirs = { { 0, 0, 1 }, { 0, 0, -1 } }
         for _, vd in ipairs(verticalDirs) do
             local nx, ny, nz = cur.x, cur.y + vd[3], cur.z
             if isLadder(cur.x, cur.y, cur.z) or isLadder(nx, ny, nz) then
                 local nk = key(nx, ny, nz)
                 if not closed[nk] then
                     local mc = 0.5
-                    local tg = (gScore[ck] or math.huge) + mc
+                    local tg = gScore[ck] + mc
                     if tg < (gScore[nk] or math.huge) then
                         gScore[nk] = tg
                         came[nk] = cur
-                        local h = heuristic(nx, ny, nz, goal.x, goal.y, goal.z)
+                        local h = heuristic(nx, ny, nz, gx, gy, gz)
                         open:push({ x = nx, y = ny, z = nz, f = tg + h, h = h })
                     end
                 end
@@ -381,50 +424,57 @@ local function astarSearch(start, goal)
                 if not closed[nk] then
                     local diagonal = (math.abs(dx) + math.abs(dz) == 2)
                     local verticalDiff = ny - cur.y
-
-                    local onLadder = isLadder(nx, ny, nz) or isLadder(cur.x, cur.y, cur.z)
-
-                    local fallPenalty = 0
-                    local verticalSurcharge = math.abs(verticalDiff) * 0.5
-
-                    if onLadder then
-                        verticalSurcharge = math.abs(verticalDiff) * 0.1
-                    elseif verticalDiff < 0 then
-                        fallPenalty = math.abs(verticalDiff) * 2.0
+                    local groundBlock = world.getBlock(nx, ny - 1, nz)
+                    
+                    local preferenceBonus = 0
+                    if groundBlock then
+                        local name = groundBlock.name:lower()
+                        if string.match(name, "slab") or string.match(name, "stairs") then
+                            preferenceBonus = -0.4
+                        end
                     end
 
-                    local mc = (diagonal and 1.4142 or 1.0)
-                        + verticalSurcharge
-                        + fallPenalty
+                    local verticalSurcharge = 0
+                    local fallPenalty = 0
+                    if verticalDiff > 0 then
+                        verticalSurcharge = verticalDiff * 2.0
+                    elseif verticalDiff < 0 then
+                        fallPenalty = math.abs(verticalDiff) * 1.5
+                    end
 
-                    local tg = (gScore[ck] or math.huge) + mc
-
+                    local mc = (diagonal and 1.4142 or 1.0) + verticalSurcharge + fallPenalty + preferenceBonus
+                    mc = math.max(mc, 0.1)
+                    
+                    local tg = gScore[ck] + mc
                     if tg < (gScore[nk] or math.huge) then
                         gScore[nk] = tg
-                        came[nk]   = cur
-                        local h    = heuristic(nx, ny, nz, goal.x, goal.y, goal.z)
-                        open:push({ x = nx, y = ny, z = nz, f = tg + h, h = h })
-                        if Core.debugCapture then
-                            Core._debugOpen[#Core._debugOpen + 1] = { x = nx, y = ny, z = nz }
-                        end
+                        came[nk] = cur
+                        local h = heuristic(nx, ny, nz, gx, gy, gz)
+                        local f = tg + h
+                        open:push({ x = nx, y = ny, z = nz, f = f - (tg * 0.0001), h = h })
                     end
                 end
             end
             ::next_dir::
         end
-
         ::continue::
     end
 
     if bestNode.x == start.x and bestNode.y == start.y and bestNode.z == start.z then
         return nil, "no path found"
     end
+
     local partial = reconstructPath(came, bestNode)
-    if Core.smoothPath then
-        return smoothPath(partial), "no path found — partial path returned"
-    else
-        return partial, "no path found — partial path returned"
+
+    if not _isReverse then
+        -- Run a reverse search from goal toward start and try to stitch.
+        local revPartial, revErr = astarSearch(goal, start, true)
+        local merged = stitchPaths(partial, revPartial)
+        local final = (Core.smoothPath and merged) and smoothPath(merged) or merged
+        return final, "no path found - partial"
     end
+
+    return Core.smoothPath and smoothPath(partial) or partial, "no path found - partial"
 end
 
 function Core.snapPos(pos)
@@ -458,5 +508,7 @@ end
 function Core.isSearching()
     return _lock
 end
+
+
 
 return Core
