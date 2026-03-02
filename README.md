@@ -60,4 +60,6 @@ Our automated system manages all Pull Requests. Please be aware of the following
 3. **Push:** Push to your fork or branch.
 4. **Pull Request:** Open a PR against the `main` branch.
 
+**In case the pr doesn't auto approve due to anything other than wrong files contact smarrtie in discord**
+
 **Happy Coding!** 💻
