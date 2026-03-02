@@ -74,9 +74,9 @@
     },
     {
       "name": "entityUtils.lua",
-      "md5": "e9292946d23cfd007a42cfc3bf79f4c3",
+      "md5": "b5dc807a3d0641c603c15c7798c21f56",
       "location": "/libs/",
-      "ver": "0.1"
+      "ver": "0.1.2"
     }
   ]
 }
