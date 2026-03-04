@@ -49,16 +49,22 @@
       "ver": "1.1.0"
     },
     {
-      "name": "smarrtieUtils.lua",
-      "md5": "1322080947ec01f35a620f2c3ef50c79",
-      "location": "/libs/",
-      "ver": "1.0.1"
-    },
-    {
       "name": "rotations_v3.lua",
       "md5": "de306e0468ab4151ed8eb1d2f0a74a1b",
       "location": "/libs/ ",
       "ver": "1.0.0-final"
+    },
+    {
+      "name": "blockUtils.lua",
+      "md5": "aa649469423bb29e6c68f0fdfe7b37ca",
+      "location": "/libs/",
+      "ver": "0.1.0"
+    },
+    {
+      "name": "entityUtils.lua",
+      "md5": "b5dc807a3d0641c603c15c7798c21f56",
+      "location": "/libs/",
+      "ver": "0.1.2"
     },
     {
       "name": "pathfinder_core.lua",
@@ -73,16 +79,10 @@
       "ver": "beta-0.3"
     },
     {
-      "name": "entityUtils.lua",
-      "md5": "b5dc807a3d0641c603c15c7798c21f56",
+      "name": "smarrtieUtils.lua",
+      "md5": "1322080947ec01f35a620f2c3ef50c79",
       "location": "/libs/",
-      "ver": "0.1.2"
-    },
-    {
-      "name": "blockUtils.lua",
-      "md5": "aa649469423bb29e6c68f0fdfe7b37ca",
-      "location": "/libs/",
-      "ver": "0.1.0"
+      "ver": "1.0.1"
     }
   ]
 }
