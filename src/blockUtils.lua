@@ -5,12 +5,13 @@
 local blockUtils = {}
 blockUtils.reach = 3
 blockUtils.closest = nil
-blockUtils.steps = 5
+blockUtils.steps = 10
 blockUtils.filter = {
     ["block.minecraft.air"] = false,
     ["block.minecraft.void_air"] = false,
     ["block.minecraft.bedrock"] = false,
     ["block.minecraft.oak_fence"] = true,
+    ["block.minecraft.glass_pane"]=true
 }
 
 ---@return boolean
@@ -89,9 +90,9 @@ local function getBoxRays(boxes, targetPos)
         local box = boxes[i]
         
         -- Calculate step sizes
-        local stepX = ((box.maxX - box.minX)) / math.max(1, steps - 1)
-        local stepY = ((box.maxY - box.minY)) / math.max(1, steps - 1)
-        local stepZ = ((box.maxZ - box.minZ)) / math.max(1, steps - 1)
+        local stepX = (box.maxX - box.minX) / math.max(1, steps - 1)
+        local stepY = (box.maxY - box.minY) / math.max(1, steps - 1)
+        local stepZ = (box.maxZ - box.minZ) / math.max(1, steps - 1)
 
         for ix = 0, steps - 1 do
             for iy = 0, steps - 1 do
@@ -106,7 +107,8 @@ local function getBoxRays(boxes, targetPos)
                     })
 
                     -- Check if the ray actually hit our target block coordinates
-                    if ray and ray.type == "block" and
+                    if ray and ray.type == "block"
+                        and
                        ray.blockPos.x == targetPos.x and
                        ray.blockPos.y == targetPos.y and
                         ray.blockPos.z == targetPos.z
