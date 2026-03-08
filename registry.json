@@ -83,6 +83,30 @@
       "md5": "22cadcf9d7ece9067d19b05459c9b8b1",
       "location": "/libs/",
       "ver": "1.0.1"
+    },
+    {
+      "name": "goonLog.lua",
+      "md5": "cc44fedd1281075ae8865a7f663d9bc2",
+      "location": "/libs/",
+      "ver": "1.0"
+    },
+    {
+      "name": "goonPestFly.lua",
+      "md5": "7324fef5bd0ca943dc7ce4b0e5fd0171",
+      "location": "/libs/\r",
+      "ver": "1.0\r"
+    },
+    {
+      "name": "goonUi.lua",
+      "md5": "5982ec7a014e381f4aa9539273f17241",
+      "location": "/libs/",
+      "ver": "1.0"
+    },
+    {
+      "name": "goonUtils.lua",
+      "md5": "8105c09c880544aafd5593d40901977f",
+      "location": "/libs/",
+      "ver": "1.0"
     }
   ]
 }
