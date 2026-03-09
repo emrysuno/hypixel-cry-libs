@@ -91,12 +91,6 @@
       "ver": "1.0"
     },
     {
-      "name": "goonUtils.lua",
-      "md5": "45b99f03e1ba08bbf4c3e8ebd6bc65ea",
-      "location": "/libs/",
-      "ver": "1.0"
-    },
-    {
       "name": "index.lua",
       "md5": "1a776f964e4b4fbaec454468a8d373bf",
       "location": "/CryVigilance/",
@@ -107,6 +101,12 @@
       "md5": "0cb45aa16d9d75735fa278fd02e49303",
       "location": "/libs/\r",
       "ver": "1.0\r"
+    },
+    {
+      "name": "goonUtils.lua",
+      "md5": "7c1440761eb2c5e4670d4216d1b2efe7",
+      "location": "/libs/",
+      "ver": "1.0"
     }
   ]
 }
