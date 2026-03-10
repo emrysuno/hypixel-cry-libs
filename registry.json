@@ -107,6 +107,24 @@
       "md5": "def58bc429aa9fbe9caecb3f3d15fc84",
       "location": "/libs/",
       "ver": "1.1"
+    },
+    {
+      "name": "goonCommsUtils.lua",
+      "md5": "2b0958d27c605989171b27b656592a2a",
+      "location": "/libs/",
+      "ver": "1.0"
+    },
+    {
+      "name": "goonStateMachine.lua",
+      "md5": "654cb586ec175ad7e81ab8dda7be1ae9",
+      "location": "/libs/",
+      "ver": "1.0"
+    },
+    {
+      "name": "goonStates.lua",
+      "md5": "0c85ea45c5ffd66eae8b86c2a752ad5b",
+      "location": "/libs/",
+      "ver": "1.0"
     }
   ]
 }
