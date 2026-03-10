@@ -97,12 +97,6 @@
       "ver": "1.0\r"
     },
     {
-      "name": "goonUtils.lua",
-      "md5": "c0c177726a86a2fbba13e06d95456e69",
-      "location": "/libs/",
-      "ver": "1.2"
-    },
-    {
       "name": "aotvUtils.lua",
       "md5": "def58bc429aa9fbe9caecb3f3d15fc84",
       "location": "/libs/",
@@ -125,6 +119,12 @@
       "md5": "0c85ea45c5ffd66eae8b86c2a752ad5b",
       "location": "/libs/",
       "ver": "1.0"
+    },
+    {
+      "name": "goonUtils.lua",
+      "md5": "476a02820196ad5140625daacf42902a",
+      "location": "/libs/",
+      "ver": "1.2"
     }
   ]
 }
