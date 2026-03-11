@@ -191,6 +191,18 @@ end
 
 --------------------------------------------------------------------------------
 
+--- @param paragraph string
+--- @return table
+function all.paraToTable(paragraph)
+  local ret = {}
+  for line in string.gmatch(paragraph, "([^\n]+)") do
+    table.insert(ret, line)
+  end
+  return ret
+end
+
+--------------------------------------------------------------------------------
+
 ---@param table table
 ---@return string
 function all.tableToString(table)
