@@ -43,36 +43,6 @@
       "ver": "1.0.0-final"
     },
     {
-      "name": "blockUtils.lua",
-      "md5": "76ea2fb772b78c4ef8b9fc3f5127ed48",
-      "location": "/libs/",
-      "ver": "0.1.0"
-    },
-    {
-      "name": "entityUtils.lua",
-      "md5": "057cabc4c20a52db8c0f87d042259abe",
-      "location": "/libs/",
-      "ver": "0.1.2"
-    },
-    {
-      "name": "pathfinder_core.lua",
-      "md5": "a46b1bcc625a5c011fa58f37b08e2c99",
-      "location": "/libs/",
-      "ver": "beta-0.3"
-    },
-    {
-      "name": "pathwalker.lua",
-      "md5": "94e600c9363aefc664aa7ad8641ec465",
-      "location": "/libs/",
-      "ver": "beta-0.3"
-    },
-    {
-      "name": "smarrtieUtils.lua",
-      "md5": "22cadcf9d7ece9067d19b05459c9b8b1",
-      "location": "/libs/",
-      "ver": "1.0.1"
-    },
-    {
       "name": "goonLog.lua",
       "md5": "cc44fedd1281075ae8865a7f663d9bc2",
       "location": "/libs/",
@@ -125,6 +95,36 @@
       "md5": "cc2f5c18577fb3e6dd5e1b35a5f473c8",
       "location": "/libs/",
       "ver": "1.2"
+    },
+    {
+      "name": "blockUtils.lua",
+      "md5": "3d76c21b0085ae1ec0446dc5821d4092",
+      "location": "/libs/",
+      "ver": "0.1.2"
+    },
+    {
+      "name": "entityUtils.lua",
+      "md5": "a7b2734c9c6f6bc66978501963f7b464",
+      "location": "/libs/",
+      "ver": "0.1.4"
+    },
+    {
+      "name": "pathfinder_core.lua",
+      "md5": "e40e0648098063baf9a7ff4807283d6c",
+      "location": "/libs/",
+      "ver": "beta-0.5"
+    },
+    {
+      "name": "pathwalker.lua",
+      "md5": "c8a34a6fca574cd00ef5e9440042bf80",
+      "location": "/libs/",
+      "ver": "beta-0.4"
+    },
+    {
+      "name": "smarrtieUtils.lua",
+      "md5": "655a7ef0f73eaad9c6041824a3dcb94f",
+      "location": "/libs/",
+      "ver": "1.0.2"
     }
   ]
 }
